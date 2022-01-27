@@ -1,0 +1,244 @@
+
+library(dplyr)
+library(expss)
+library(survey)
+library(ggplot2)
+###############################################################################
+####### #Obtener la base 2011-2020 de la enaho, unificando modulo 400 y sumaria
+###############################################################################
+
+codigos<-c("291","324","404","440","498","546","603","634","687","737")
+a?os<-c("2011","2012","2013","2014","2015","2016","2017","2018","2019","2020")
+salud<-c()
+
+for (i in codigos) {
+  for (j in a?os){
+    temp<-tempfile()
+    
+    if (j=="2011"){
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo04.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        enaho_400<-haven::read_dta(unzip(temp,paste0(i,"-Modulo04/","Enaho01A-",j,"-400.dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo34.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        sumaria<-haven::read_dta(unzip(temp,paste0(i,"-Modulo34/","sumaria-",j,".dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      
+    } else if(j=="2012") {
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo04.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        enaho_400<-haven::read_dta(unzip(temp,paste0("enaho01a-",j,"-400.dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo34.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        sumaria<-haven::read_dta(unzip(temp,paste0("sumaria-",j,".dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+    }else if(j=="2013") {
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo04.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        enaho_400<-haven::read_dta(unzip(temp,paste0(i,"-Modulo04/","Enaho01a-",j,"-400.dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo34.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        sumaria<-haven::read_dta(unzip(temp,paste0(i,"-Modulo34/","SUMARIA-",j,".DTA")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+    } else if(j=="2015") {
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo04.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        enaho_400<-haven::read_dta(unzip(temp,paste0("enaho01a-",j,"-400.dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo34.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        sumaria<-haven::read_dta(unzip(temp,paste0("sumaria-",j,".dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      
+    } else {
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo04.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        enaho_400<-haven::read_dta(unzip(temp,paste0(i,"-Modulo04/","enaho01a-",j,"-400.dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      download.file(paste0("http://iinei.inei.gob.pe/iinei/srienaho/descarga/STATA/",i,"-Modulo34.zip"),temp)
+      
+      posibleerror<-tryCatch({
+        sumaria<-haven::read_dta(unzip(temp,paste0(i,"-Modulo34/","sumaria-",j,".dta")))  },
+        error = function(e){
+          e
+        } 
+      )
+      if(inherits(posibleerror, "error")) next
+      
+      
+    }
+    
+    enaho_400<-enaho_400 %>%
+      drop_var_labs()
+    
+    enaho_400[,c("p4191","p4192","p4193","p4194","p4195",
+                 "p4196","p4197","p4198")]<- lapply(enaho_400[,c("p4191","p4192","p4193","p4194","p4195",
+                                                                 "p4196","p4197","p4198")],function(x) 
+                                                                   dplyr::recode(x,`1`= 1L,.default = 0L) )
+    
+    names(enaho_400)[1] <- "Ano"
+    enaho_400 <- enaho_400 %>%
+      mutate(identh = paste(Ano,conglome,vivienda,hogar),
+             seguro= p4191+p4192+p4193+p4194+p4195+p4196+p4197+p4198,
+             asegurado=ifelse(seguro>0,1,0)) %>%
+      select(Ano,identh,asegurado, p4191,p4192,p4193,p4194,p4195,
+             p4196,p4197,p4198,factor07,p207)
+    
+    
+    names(sumaria)[1] <- "Ano"
+    
+    
+    
+    sumaria<- sumaria %>%
+      mutate(identh = paste(Ano,conglome,vivienda,hogar)) %>%
+      select(identh,ubigeo,dominio,estrato,conglome,linea,linpe,pobreza,
+             mieperho) 
+    
+    sumaria$sub12 <- substr(sumaria$ubigeo,1,2)
+    sumaria$sub12 <- as.numeric(sumaria$sub12)
+    
+    regiones<- data.frame(id= c(1:25),
+                          departamentos=c("Amazonas", "Ancash", "Apurimac", 
+                                          "Arequipa", "Ayacucho", "Cajamarca", 
+                                          "Callao", "Cusco", "Huancavelica", 
+                                          "Huanuco", "Ica","Junin", "La Libertad",
+                                          "Lambayeque", "Lima", "Loreto", 
+                                          "Madre De Dios", "Moquegua", "Pasco", 
+                                          "Piura", "Puno" , "San Martin", "Tacna" ,
+                                          "Tumbes" , "Ucayali"))
+    
+    sumaria$region<- regiones$departamentos[match(sumaria$sub12,regiones$id)]
+    sumaria$dominio<-as.numeric(sumaria$dominio)
+    sumaria$estrato<-as.numeric(sumaria$estrato)
+    
+    sumaria <- sumaria %>%
+      mutate(area = ifelse((dominio==8 |
+                              (dominio>=1 & dominio<=7) &
+                              (estrato>=1 & estrato<=5)), "Urbano",
+                           ifelse(((dominio>=1 & dominio<=7) &
+                                     (estrato>=6 & estrato<=8)), "Rural", NA))) %>%
+      select(identh,conglome,estrato,region,area,linea,linpe,pobreza,mieperho) 
+    
+    data<-inner_join(sumaria,enaho_400, by="identh")
+    
+    salud<-rbind(salud,data)
+  }
+}
+
+rm(list=setdiff(ls(), c("salud")))
+
+salud$pobreza<-ifelse(salud$pobreza==1|salud$pobreza==2,1,0)
+
+###############################################################################
+####################### Trabajando los datos ##################################
+###############################################################################
+
+
+##### Evoluci?n del acceso de salud por regi?n
+
+tabla1<-aggregate(salud$factor07, by=list(salud$Ano,salud$asegurado,salud$region), FUN=sum)
+
+colnames(tabla1)<-c("A?o","Seguro","Regi?n","Personas")
+
+tabla1<-tabla1%>%
+  group_by(A?o,Regi?n)%>%
+  mutate(Porcentaje = round(Personas/ sum(Personas), 4),
+         Porcentaje_1=Porcentaje*100 ) %>%
+  ungroup() %>%
+  filter(Seguro=="1")
+tabla2<-aggregate(salud$factor07, by=list(salud$Ano,salud$asegurado), FUN=sum)
+
+colnames(tabla2)<-c("A?o","Seguro","Personas")
+
+tabla2<-tabla2%>%
+  group_by(A?o)%>%
+  mutate(Porcentaje = round(Personas/ sum(Personas), 4),
+         Porcentaje_1=Porcentaje*100 ) %>%
+  ungroup()%>%
+  filter(Seguro==1)
+
+# Gr?fico N?1
+ggplot(tabla1, aes(A?o,Porcentaje_1))+
+  geom_point(data=tabla1,size = 5,aes(color=factor(Regi?n)))+
+  geom_point(data=tabla2)+
+  geom_line(data=tabla2,aes(group = Seguro), size=1)+
+  geom_text(data=tabla2,aes(label=round(Porcentaje_1,3)), 
+            check_overlap = TRUE, size=5,hjust=1.3)+
+  scale_color_manual(values=c("#FF0000","#DA70D6","#0000FF",
+                              "#FFFF00","#00FFFF","#FF00FF",
+                              "#FFFACD","#808080","#800000",
+                              "#808000","#008000","#800080",
+                              "#008080","#000080","#00FA9A",
+                              "#9400D3","#D2691E","#FFC0CB",
+                              "#B8860B","#7CFC00","#FFD700",
+                              "#F08080","#BA55D3","#BC8F8F",
+                              "#F4A460"
+  ))+
+  theme(panel.background = element_rect(fill = "grey100"), 
+        panel.border =element_rect(colour = "black",fill=NA),
+        legend.position ="bottom", 
+        legend.key = element_rect(fill = "white", 
+                                  colour = "black"), 
+        legend.text = element_text(size = 8, 
+                                   colour = "black"), 
+        legend.background = element_rect(fill="white") )+
+  xlab("A?o")+ 
+  ylab("Porcentaje")+ 
+  labs(color="Regi?n")
